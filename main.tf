@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "3.6.2"
+    } 
   }
 }
 
@@ -13,7 +17,8 @@ provider "aws" {
 }
 
 locals {
-  image             = "ghcr.io/csse6400/taskoverflow:latest"
+  # image = "ghcr.io/csse6400/taskoverflow:latest"
+  image = docker_image.taskoverflow.name
   database_username = "myuser"
   database_password = "dbpassword123"
 }
@@ -158,4 +163,19 @@ resource "aws_security_group" "taskoverflow" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+
+data "aws_ecr_authorization_token" "ecr_token" {}
+
+provider "docker" {
+  registry_auth {
+    address  = data.aws_ecr_authorization_token.ecr_token.proxy_endpoint
+    username = data.aws_ecr_authorization_token.ecr_token.user_name
+    password = data.aws_ecr_authorization_token.ecr_token.password
+  }
+}
+
+resource "aws_ecr_repository" "taskoverflow" {
+  name = "taskoverflow"
 }
